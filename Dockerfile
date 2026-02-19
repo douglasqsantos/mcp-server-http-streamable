@@ -1,11 +1,17 @@
-# MCP HTTP streamable server
+# MCP HTTP streamable server (uv for local/remote parity)
 FROM python:3.12-slim
+
+# Install uv from official image (same tool as local)
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 WORKDIR /app
 
-# Install dependencies from pyproject.toml
-COPY pyproject.toml ./
-RUN pip install --no-cache-dir "mcp[cli]>=1.26.0"
+# Avoid link warnings when cache and target are on different filesystems
+ENV UV_LINK_MODE=copy
+
+# Install dependencies with uv (mirrors local: uv sync)
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen
 
 # Application
 COPY server.py ./
@@ -14,4 +20,5 @@ COPY server.py ./
 ENV MCP_PORT=8000
 EXPOSE 8000
 
-CMD ["python", "server.py"]
+# Same invocation as local: uv run server.py
+CMD ["uv", "run", "server.py"]

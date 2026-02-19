@@ -1,6 +1,6 @@
 # mcp-server-http-streamable
 
-A minimal [Model Context Protocol (MCP)](https://modelcontextprotocol.io) server using **Streamable HTTP** transport. It exposes a `greeting` tool and runs as an HTTP service so clients can connect over the network.
+A minimal [Model Context Protocol (MCP)](https://modelcontextprotocol.io) server using **Streamable HTTP** transport. It exposes a `greeting` tool and runs as an HTTP service so clients can connect over the network. The project uses **uv** both locally and in Docker/Kubernetes for a single, consistent approach.
 
 ## Prerequisites
 
@@ -17,7 +17,7 @@ Follow these steps to build the image, push it to a registry, and run the server
 
 **Manifests** (in `k8s/`): `00-namespace.yaml`, `01-deployment.yaml`, `02-service.yaml` — numbered so `kubectl apply -f k8s/` runs them in the right order.
 
-1. **Build the Docker image** (from the project root):
+1. **Build the Docker image** (from the project root; image uses **uv** like local):
 
    ```bash
    docker build -t douglasqsantos/mcp-server-http-streamable:latest .
@@ -99,7 +99,7 @@ MCP_PORT=9000 uv run server.py
 
 ### Option 2: Docker
 
-Build and run the image:
+The image uses **uv** (same as local) so dependency install and run match your usual workflow. Build and run:
 
 ```bash
 docker build -t mcp-server-http-streamable .
