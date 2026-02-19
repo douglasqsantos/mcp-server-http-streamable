@@ -9,6 +9,68 @@ A minimal [Model Context Protocol (MCP)](https://modelcontextprotocol.io) server
 
 For Docker: [Docker](https://docs.docker.com/get-docker/) and Docker Compose.
 
+For Kubernetes deploy: [kubectl](https://kubernetes.io/docs/tasks/tools/) and a cluster (minikube, kind, EKS, etc.).
+
+## Deploy to Kubernetes
+
+Follow these steps to build the image, push it to a registry, and run the server in Kubernetes.
+
+**Manifests** (in `k8s/`): `00-namespace.yaml`, `01-deployment.yaml`, `02-service.yaml` — numbered so `kubectl apply -f k8s/` runs them in the right order.
+
+1. **Build the Docker image** (from the project root):
+
+   ```bash
+   docker build -t douglasqsantos/mcp-server-http-streamable:latest .
+   ```
+
+2. **Push the image** to Docker Hub (or your registry):
+
+   ```bash
+   docker push douglasqsantos/mcp-server-http-streamable:latest
+   ```
+
+   Log in first with `docker login` if needed.
+
+3. **Deploy to the cluster** (namespace, deployment, and service):
+
+   ```bash
+   kubectl apply -f k8s/
+   ```
+
+   Manifests are numbered (`00-namespace.yaml`, `01-deployment.yaml`, `02-service.yaml`) so they apply in the correct order.
+
+4. **Wait for the pod to be ready:**
+
+   ```bash
+   kubectl -n mcp-server get pods -l app=mcp-server-http-streamable
+   ```
+
+   Wait until `STATUS` is `Running` and `READY` is `1/1`.
+
+5. **Access the MCP server:**
+   - **Port-forward** (works on any cluster):
+
+     ```bash
+     kubectl -n mcp-server port-forward svc/mcp-server-http-streamable 8000:8000
+     ```
+
+     Use **<http://localhost:8000/mcp>** in your MCP client. Leave the command running.
+   - **NodePort** (if you use the NodePort service): use `http://<NODE_IP>:30800/mcp`. Get node IP with `kubectl get nodes -o wide` or `minikube ip` (minikube).
+
+6. **Update and redeploy** after image changes:
+
+   ```bash
+   docker build -t douglasqsantos/mcp-server-http-streamable:latest .
+   docker push douglasqsantos/mcp-server-http-streamable:latest
+   kubectl -n mcp-server rollout restart deployment/mcp-server-http-streamable
+   ```
+
+7. **Remove the deployment:**
+
+   ```bash
+   kubectl delete -f k8s/
+   ```
+
 ## How to run
 
 ### Option 1: Local (uv)
@@ -67,6 +129,50 @@ docker compose down
 ```
 
 Port **8000** is mapped to the host. Connect to **<http://localhost:8000/mcp>** from your MCP client.
+
+### Option 4: Kubernetes
+
+Manifests in `k8s/` (`00-namespace.yaml`, `01-deployment.yaml`, `02-service.yaml`) deploy the image `douglasqsantos/mcp-server-http-streamable:latest` into the `mcp-server` namespace. For the full flow (build → push → deploy), see [Deploy to Kubernetes](#deploy-to-kubernetes) above.
+
+1. **Create namespace, deployment, and service:**
+
+   ```bash
+   kubectl apply -f k8s/
+   ```
+
+   (Numbered filenames ensure the namespace is created before the deployment and service.)
+
+2. **Wait for the pod to be ready:**
+
+   ```bash
+   kubectl -n mcp-server get pods -l app=mcp-server-http-streamable -w
+   ```
+
+   (Ctrl+C when `Running` and `1/1` ready.)
+
+3. **Access the MCP server:**
+
+   - **NodePort (cluster node IP):** The service exposes port **30800** on each node. Use:
+
+     ```text
+     http://<NODE_IP>:30800/mcp
+     ```
+
+     Get a node IP with `kubectl get nodes -o wide` or, on minikube, `minikube ip`.
+
+   - **Port-forward (any cluster):**
+
+     ```bash
+     kubectl -n mcp-server port-forward svc/mcp-server-http-streamable 8000:8000
+     ```
+
+     Then use **<http://localhost:8000/mcp>** in your MCP client.
+
+4. **Clean up:**
+
+   ```bash
+   kubectl delete -f k8s/
+   ```
 
 ## Connecting a client
 
@@ -138,6 +244,48 @@ The [MCP Inspector](https://modelcontextprotocol.io/tools/inspector) lets you te
    - Open the **greeting** tool, set `name` (e.g. `"World"`), and run it to see the response.
 
 If the inspector only supports stdio, start the server as above and use another MCP client that supports Streamable HTTP (e.g. Cursor with an MCP server config that uses the `http://localhost:8000/mcp` URL).
+
+### Testing with the server in Kubernetes (via proxy)
+
+When the MCP server is running in the cluster (see [Deploy to Kubernetes](#deploy-to-kubernetes)), you can test it from your machine using the MCP Inspector and a **Streamable HTTP** connection **via proxy**.
+
+1. **Deploy the server** and ensure the pod is running:
+
+   ```bash
+   kubectl apply -f k8s/
+   kubectl -n mcp-server get pods -l app=mcp-server-http-streamable
+   ```
+
+2. **Get the NodePort** from the service (our manifest uses **30800**):
+
+   ```bash
+   kubectl -n mcp-server get svc mcp-server-http-streamable
+   ```
+
+   Note the **PORT(S)** value (e.g. `8000:30800/TCP`) — the second number is the NodePort.
+
+3. **Expose the service to localhost** (so the inspector can reach it):
+
+   ```bash
+   kubectl -n mcp-server port-forward svc/mcp-server-http-streamable 30800:8000
+   ```
+
+   Leave this running. The MCP endpoint is then at **<http://127.0.0.1:30800/mcp>**.
+
+4. **Open the MCP Inspector** (run locally):
+
+   ```bash
+   mcp dev server.py
+   ```
+
+   This starts the inspector; the local `server.py` is only used to launch the inspector process.
+
+5. **In the inspector, add a new connection:**
+   - **Transport type:** **Streamable HTTP**
+   - **Connection type:** **Via proxy** (use the proxy option so the inspector connects to the K8s-exposed URL)
+   - **URL:** **`http://127.0.0.1:30800/mcp`** (with the port-forward above; if you use the node IP and NodePort instead, use `http://<NODE_IP>:30800/mcp` and get the node IP with `kubectl get nodes -o wide` or `minikube ip`)
+
+6. Connect and test the **greeting** tool as in the steps above.
 
 ## Tools
 
