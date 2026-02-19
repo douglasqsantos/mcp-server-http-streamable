@@ -18,5 +18,5 @@ RUN uv sync --frozen
 ENV MCP_PORT=8000
 EXPOSE 8000
 
-# Same invocation as local: uv run mcp-server
-CMD ["uv", "run", "mcp-server"]
+# Run with venv Python only — no uv or launcher scripts at runtime (no install on bootstrap)
+CMD ["/app/.venv/bin/python", "-m", "mcpserver"]
