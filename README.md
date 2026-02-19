@@ -74,6 +74,43 @@ Use the Streamable HTTP URL when adding this server to an MCP client (e.g. Curso
 
 - **URL:** `http://localhost:8000/mcp` (or your host/port if different)
 
+### Claude Desktop (via mcp-remote)
+
+Claude Desktop talks to MCP servers over stdio by default. To use this **HTTP** server, run it via **mcp-remote**, which bridges stdio to your running HTTP server.
+
+1. **Start this server** (local or Docker) so it is listening on `http://localhost:8000/mcp` (or your host/port).
+
+2. **Edit Claude’s MCP config**
+   - **macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
+   - **Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
+
+3. **Add a server entry** that uses `npx` and `mcp-remote` with your server URL and `--allow-http`:
+
+   ```json
+   {
+     "mcpServers": {
+       "RemoteExample": {
+         "command": "npx",
+         "args": [
+           "mcp-remote",
+           "http://localhost:8000/mcp",
+           "--allow-http"
+         ]
+       }
+     }
+   }
+   ```
+
+   Use `http://0.0.0.0:8000/mcp` only if Claude and the server run on the same machine and you intend to bind to all interfaces; otherwise prefer **`http://localhost:8000/mcp`**.
+
+4. Restart Claude Desktop. The server’s tools (e.g. **greeting**) should appear once connected.
+
+5. **Use it in chat** — In Claude, you can ask in plain language and Claude will call the tool. For example:
+   - *“Send a greeting to Douglas”* → Claude uses the **greeting** tool with `name: "Douglas"` and replies with “Hi Douglas”.
+   - You can substitute any name: *“Say hello to Maria”*, *“Greet the team”*, etc.
+
+**Requirements:** [Node.js](https://nodejs.org/) (for `npx`) and the [mcp-remote](https://www.npmjs.com/package/mcp-remote) package (installed automatically when you use `npx mcp-remote`).
+
 ## Using the MCP Inspector
 
 The [MCP Inspector](https://modelcontextprotocol.io/tools/inspector) lets you test tools and resources without a full client. Use it with this server as follows.
