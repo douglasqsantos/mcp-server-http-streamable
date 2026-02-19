@@ -1,9 +1,32 @@
 [project]
 name = "mcp-server-http-streamable"
 version = "0.1.0"
-description = "Add your description here"
+description = "MCP server with Streamable HTTP transport"
 readme = "README.md"
+authors = [
+    { name = "Douglas Quintiliano dos Santos", email = "douglas.q.santos@gmail.com" },
+]
+license = { file = "LICENSE" }
+keywords = ["mcp", "server", "streamable-http"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
 requires-python = ">=3.12"
 dependencies = [
     "mcp[cli]>=1.26.0",
 ]
+
+[project.scripts]
+mcp-server = "mcpserver.__main__:main"
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.package-dir]
+"" = "src"
+
+[tool.setuptools.packages.find]
+where = ["src"]

@@ -9,16 +9,14 @@ WORKDIR /app
 # Avoid link warnings when cache and target are on different filesystems
 ENV UV_LINK_MODE=copy
 
-# Install dependencies with uv (mirrors local: uv sync)
+# Install project with uv (mirrors local: uv sync)
 COPY pyproject.toml uv.lock ./
+COPY src ./src/
 RUN uv sync --frozen
-
-# Application
-COPY server.py ./
 
 # Streamable HTTP default port
 ENV MCP_PORT=8000
 EXPOSE 8000
 
-# Same invocation as local: uv run server.py
-CMD ["uv", "run", "server.py"]
+# Same invocation as local: uv run mcp-server
+CMD ["uv", "run", "mcp-server"]

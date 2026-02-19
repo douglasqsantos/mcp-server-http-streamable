@@ -1,6 +1,22 @@
 # mcp-server-http-streamable
 
-A minimal [Model Context Protocol (MCP)](https://modelcontextprotocol.io) server using **Streamable HTTP** transport. It exposes a `greeting` tool and runs as an HTTP service so clients can connect over the network. The project uses **uv** both locally and in Docker/Kubernetes for a single, consistent approach.
+A minimal [Model Context Protocol (MCP)](https://modelcontextprotocol.io) server using **Streamable HTTP** transport. It exposes a `greeting` tool and runs as an HTTP service so clients can connect over the network. The project uses **uv** both locally and in Docker/Kubernetes for a single, consistent approach. You can run it locally with `uv run mcp-server`, from Git with **uvx**, or in Docker/Kubernetes.
+
+## Project structure
+
+```
+mcp-server-http-streamable/
+├── src/mcpserver/
+│   ├── __init__.py
+│   ├── __main__.py      # Entry point (mcp-server)
+│   └── server.py        # FastMCP app and tools
+├── k8s/                 # Kubernetes manifests (00-, 01-, 02-)
+├── pyproject.toml       # Project and [project.scripts] mcp-server
+├── uv.lock
+├── Dockerfile
+├── docker-compose.yml
+└── README.md
+```
 
 ## Prerequisites
 
@@ -79,7 +95,7 @@ From the project directory:
 
 ```bash
 uv sync
-uv run server.py
+uv run mcp-server
 ```
 
 The server listens on **<http://0.0.0.0:8000>** by default. The MCP endpoint is at **<http://localhost:8000/mcp>**.
@@ -94,10 +110,20 @@ The server listens on **<http://0.0.0.0:8000>** by default. The MCP endpoint is 
 Example with a custom port:
 
 ```bash
-MCP_PORT=9000 uv run server.py
+MCP_PORT=9000 uv run mcp-server
 ```
 
-### Option 2: Docker
+### Option 2: Run with uvx (from Git)
+
+Install and run from the repository without cloning (requires [uv](https://docs.astral.sh/uv/)):
+
+```bash
+uvx --from git+https://github.com/douglasqsantos/mcp-server-http-streamable.git mcp-server
+```
+
+Use your repo URL if different. The server runs with the same defaults (port 8000, endpoint **http://localhost:8000/mcp**). To use a different port, set `MCP_PORT` before running (e.g. in your shell or in the process that invokes uvx).
+
+### Option 3: Docker
 
 The image uses **uv** (same as local) so dependency install and run match your usual workflow. Build and run:
 
@@ -108,7 +134,7 @@ docker run -p 8000:8000 mcp-server-http-streamable
 
 The server is available at **<http://localhost:8000/mcp>**.
 
-### Option 3: Docker Compose
+### Option 4: Docker Compose
 
 Build and start the service (foreground):
 
@@ -130,7 +156,7 @@ docker compose down
 
 Port **8000** is mapped to the host. Connect to **<http://localhost:8000/mcp>** from your MCP client.
 
-### Option 4: Kubernetes
+### Option 5: Kubernetes
 
 Manifests in `k8s/` (`00-namespace.yaml`, `01-deployment.yaml`, `02-service.yaml`) deploy the image `douglasqsantos/mcp-server-http-streamable:latest` into the `mcp-server` namespace. For the full flow (build → push → deploy), see [Deploy to Kubernetes](#deploy-to-kubernetes) above.
 
@@ -180,6 +206,25 @@ Use the Streamable HTTP URL when adding this server to an MCP client (e.g. Curso
 
 - **URL:** `http://localhost:8000/mcp` (or your host/port if different)
 
+**Cursor with uvx:** To run the server via uvx from Git in Cursor, add to your MCP config (e.g. `~/.cursor/mcp.json`):
+
+```json
+{
+  "mcpServers": {
+    "McpServerHttpStreamable": {
+      "command": "/opt/homebrew/bin/uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/douglasqsantos/mcp-server-http-streamable.git",
+        "mcp-server"
+      ]
+    }
+  }
+}
+```
+
+Start the server from Cursor (or run `uvx --from git+https://... mcp-server` in a terminal), then use **http://localhost:8000/mcp** in clients that connect by URL.
+
 ### Claude Desktop (via mcp-remote)
 
 Claude Desktop talks to MCP servers over stdio by default. To use this **HTTP** server, run it via **mcp-remote**, which bridges stdio to your running HTTP server.
@@ -224,7 +269,7 @@ The [MCP Inspector](https://modelcontextprotocol.io/tools/inspector) lets you te
 1. **Start the server** (in one terminal):
 
    ```bash
-   uv run server.py
+   uv run mcp-server
    ```
 
    Leave it running. The server must be up before the inspector connects.
@@ -275,10 +320,10 @@ When the MCP server is running in the cluster (see [Deploy to Kubernetes](#deplo
 4. **Open the MCP Inspector** (run locally):
 
    ```bash
-   mcp dev server.py
+   mcp dev
    ```
 
-   This starts the inspector; the local `server.py` is only used to launch the inspector process.
+   This starts the inspector; the server itself runs in the cluster (step 3).
 
 5. **In the inspector, add a new connection:**
    - **Transport type:** **Streamable HTTP**
@@ -290,3 +335,7 @@ When the MCP server is running in the cluster (see [Deploy to Kubernetes](#deplo
 ## Tools
 
 - **`greeting(name)`** — Returns a greeting for the given name.
+
+## License
+
+MIT License. See [LICENSE](LICENSE) for details. You may use, copy, modify, and distribute this sample for any purpose.
